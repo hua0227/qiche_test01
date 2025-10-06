@@ -1,5 +1,6 @@
 // 初始化英雄区域图表（页面加载时调用）
 function initHeroChart() {
+<<<<<<< HEAD
     // 检查图表容器是否存在，避免DOM错误
     const chartContainer = document.getElementById('hero-chart');
     if (!chartContainer) {
@@ -15,6 +16,10 @@ function initHeroChart() {
 
     // 创建新图表实例并缓存
     window.heroChartInstance = new Chart(ctx, {
+=======
+    const ctx = document.getElementById('hero-chart').getContext('2d');
+    new Chart(ctx, {
+>>>>>>> 4548fd890fad4d4a55113861ff51f36c3afd859d
         type: 'line',
         data: {
             labels: ['2018', '2019', '2020', '2021', '2022', '2023'],
@@ -23,16 +28,22 @@ function initHeroChart() {
                 data: [36, 49, 63, 91, 131, 178],
                 borderColor: 'rgba(255, 255, 255, 0.8)',
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
+<<<<<<< HEAD
                 borderWidth: 2,  // 增加线条宽度，提升可读性
                 tension: 0.4,
                 fill: true,
                 pointBackgroundColor: 'rgba(255, 255, 255, 1)',  // 数据点颜色
                 pointRadius: 4,  // 数据点大小
                 pointHoverRadius: 6  //  hover时数据点大小
+=======
+                tension: 0.4,
+                fill: true
+>>>>>>> 4548fd890fad4d4a55113861ff51f36c3afd859d
             }]
         },
         options: {
             responsive: true,
+<<<<<<< HEAD
             maintainAspectRatio: false,  // 允许图表自适应容器大小
             plugins: {
                 legend: {
@@ -61,6 +72,16 @@ function initHeroChart() {
             interaction: {
                 mode: 'index',  // 鼠标hover时显示对应索引的所有数据
                 intersect: false
+=======
+            plugins: {
+                legend: {
+                    labels: { color: 'rgba(255, 255, 255, 0.8)' }
+                }
+            },
+            scales: {
+                x: { ticks: { color: 'rgba(255, 255, 255, 0.7)' } },
+                y: { ticks: { color: 'rgba(255, 255, 255, 0.7)' } }
+>>>>>>> 4548fd890fad4d4a55113861ff51f36c3afd859d
             }
         }
     });
@@ -68,6 +89,7 @@ function initHeroChart() {
 
 // 渲染车型区域分布图表（查询后调用）
 function renderRegionDistribution(data) {
+<<<<<<< HEAD
     // 数据有效性验证
     if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
         console.warn('无效的区域分布数据，无法渲染图表');
@@ -93,18 +115,29 @@ function renderRegionDistribution(data) {
 
     // 创建新图表实例并缓存
     window.regionChartInstance = new Chart(ctx, {
+=======
+    const ctx = document.getElementById('region-distribution-chart').getContext('2d');
+    new Chart(ctx, {
+>>>>>>> 4548fd890fad4d4a55113861ff51f36c3afd859d
         type: 'doughnut',
         data: {
             labels: Object.keys(data),
             datasets: [{
                 data: Object.values(data),
+<<<<<<< HEAD
                 backgroundColor: colors,
                 borderWidth: 1,
                 borderColor: '#fff'  // 区域间白色边框，提升区分度
+=======
+                backgroundColor: [
+                    '#165DFF', '#36D399', '#7C3AED', '#F59E0B', '#EF4444'
+                ]
+>>>>>>> 4548fd890fad4d4a55113861ff51f36c3afd859d
             }]
         },
         options: {
             responsive: true,
+<<<<<<< HEAD
             maintainAspectRatio: false,
             plugins: {
                 legend: { 
@@ -130,12 +163,19 @@ function renderRegionDistribution(data) {
                 animateScale: true,  // 缩放动画
                 animateRotate: true  // 旋转动画
             }
+=======
+            plugins: { legend: { position: 'right' } }
+>>>>>>> 4548fd890fad4d4a55113861ff51f36c3afd859d
         }
     });
 }
 
 // 页面加载时初始化图表
 document.addEventListener('DOMContentLoaded', () => {
+<<<<<<< HEAD
     // 确保DOM完全加载后初始化图表
     setTimeout(initHeroChart, 100);  // 轻微延迟，避免容器未就绪
+=======
+    initHeroChart();
+>>>>>>> 4548fd890fad4d4a55113861ff51f36c3afd859d
 });

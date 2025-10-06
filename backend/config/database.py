@@ -11,15 +11,15 @@ from typing import List, Optional, Dict
 def get_root_dir() -> str:
     """获取项目根目录（与backend同级的目录）"""
     current_file = os.path.abspath(__file__)
-    # 向上跳转3级：config -> backend -> 根目录（根据实际目录结构调整层级）
-    return os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
+    """直接返回容器工作目录 /app（无需多级跳转）"""
+    return os.path.abspath("/app")
 
 
 def load_csv_data(file_name: Optional[str] = None) -> pd.DataFrame:
     """读取根目录下的CSV文件，处理编码和路径问题"""
     root_dir = get_root_dir()
     file_name = file_name or "Electric_Vehicle_Population_Datas.csv"
-    file_path = os.path.join(root_dir, file_name)
+    file_path = os.path.join(root_dir,"data",file_name)
 
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"根目录下未找到文件：{file_path}")
@@ -221,13 +221,58 @@ def init_ev_data() -> None:
         EVDataLoader.load_data()
         # 触发一次记录转换，验证映射是否正确
         sample_records = EVDataLoader.get_records()[:5]  # 只验证前5条
-        print(f"CSV数据初始化成功，共加载 {len(EVDataLoader.load_data())} 行数据")
+        # 修复：用get_records()获取实际模型列表长度（与前端展示的数据量一致）
+        total_records = len(EVDataLoader.get_records())
+        print(f"CSV数据初始化成功，共加载 {total_records} 条记录")
         print(f"示例数据：{sample_records[0] if sample_records else '无数据'}")
     except Exception as e:
         print(f"CSV数据初始化失败：{str(e)}")
         # 初始化失败时清空缓存，避免后续调用出错
         EVDataLoader.clear_cache()
         EVDataQuery.clear_query_cache()
+
+
+# --------------------------
+# 新增：供main.py导入的3个核心函数（解决ImportError）
+# --------------------------
+def get_ev_data(file_name: Optional[str] = None) -> List[ElectricVehicleRecord]:
+    """获取所有电动汽车记录（供接口调用）"""
+    try:
+        # 复用EVDataLoader的现有逻辑，避免重复代码
+        return EVDataLoader.get_records(file_name)
+    except Exception as e:
+        print(f"获取所有电动汽车数据失败：{str(e)}")
+        return []  # 失败时返回空列表，避免前端崩溃
+
+
+def get_all_models(file_name: Optional[str] = None) -> List[str]:
+    """获取所有车型（去重、排序，供前端下拉选择等场景）"""
+    try:
+        all_records = EVDataLoader.get_records(file_name)
+        # 提取非空车型，去重后排序
+        all_models = {record.model for record in all_records if record.model}
+        return sorted(all_models)
+    except Exception as e:
+        print(f"获取所有车型列表失败：{str(e)}")
+        return []
+
+
+def get_model_details(model_name: str, file_name: Optional[str] = None) -> Optional[List[ElectricVehicleRecord]]:
+    """根据车型名称查询详细数据（不区分大小写，支持模糊匹配）"""
+    try:
+        if not model_name:
+            return None
+        model_name_lower = model_name.lower()
+        all_records = EVDataLoader.get_records(file_name)
+        # 筛选匹配的车型（不区分大小写，确保兼容性）
+        matched_records = [
+            record for record in all_records
+            if record.model and model_name_lower in record.model.lower()
+        ]
+        return matched_records if matched_records else None
+    except Exception as e:
+        print(f"查询车型[{model_name}]详情失败：{str(e)}")
+        return None
 
 
 # --------------------------
@@ -247,3 +292,13 @@ if __name__ == "__main__":
     # 示例3：查询纯电动车类型的记录
     bev_records = EVDataQuery.get_by_ev_type("Battery Electric Vehicle (BEV)")
     print(f"纯电动车记录数：{len(bev_records)}")
+
+    # 新增示例：测试3个核心函数
+    all_ev_data = get_ev_data()
+    print(f"\n所有电动汽车记录数：{len(all_ev_data)}")
+    
+    all_models = get_all_models()
+    print(f"所有车型列表（前10个）：{all_models[:10]}")
+    
+    model_details = get_model_details("Model 3")
+    print(f"\nModel 3 车型详情数：{len(model_details) if model_details else 0}")
