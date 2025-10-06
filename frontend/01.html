@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美国电动汽车数据分析平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@1.2.0/build/index.umd.min.js"></script>
+    
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36D399',
+                        accent: '#7C3AED',
+                        dark: '#1E293B',
+                        light: '#F8FAFC',
+                        neutral: '#64748B'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.5s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                },
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .bg-gradient-primary {
+                background: linear-gradient(135deg, #165DFF 0%, #7C3AED 100%);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(22, 93, 255, 0.1), 0 10px 10px -5px rgba(22, 93, 255, 0.04);
+            }
+            .timeline-slider {
+                -webkit-appearance: none;
+                height: 6px;
+                border-radius: 5px;
+                background: #e2e8f0;
+                outline: none;
+            }
+            .timeline-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 20px;
+                height: 20px;
+                border-radius: 50%;
+                background: #165DFF;
+                cursor: pointer;
+                transition: all 0.2s ease;
+            }
+            .timeline-slider::-webkit-slider-thumb:hover {
+                transform: scale(1.2);
+                box-shadow: 0 0 10px rgba(22, 93, 255, 0.5);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans text-gray-800">
+    <!-- 导航栏 -->
+    <header class="bg-white shadow-md fixed w-full z-50 transition-all duration-300" id="navbar">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-bolt text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold text-dark">美国EV数据洞察</h1>
+            </div>
+            <nav class="hidden md:flex space-x-8">
+                <a href="#" class="font-medium text-primary hover:text-primary/80 transition-colors">首页</a>
+                <a href="#query-tools" class="font-medium text-gray-600 hover:text-primary transition-colors">查询工具</a>
+                <a href="#visualizations" class="font-medium text-gray-600 hover:text-primary transition-colors">数据可视化</a>
+                <a href="#" class="font-medium text-gray-600 hover:text-primary transition-colors">关于数据</a>
+            </nav>
+            <button class="md:hidden text-gray-600 focus:outline-none" id="menu-toggle">
+                <i class="fa fa-bars text-xl"></i>
+            </button>
+        </div>
+        <!-- 移动端菜单 -->
+        <div class="md:hidden hidden bg-white w-full border-t" id="mobile-menu">
+            <div class="container mx-auto px-4 py-2 flex flex-col space-y-3">
+                <a href="#" class="py-2 font-medium text-primary">首页</a>
+                <a href="#query-tools" class="py-2 font-medium text-gray-600 hover:text-primary transition-colors">查询工具</a>
+                <a href="#visualizations" class="py-2 font-medium text-gray-600 hover:text-primary transition-colors">数据可视化</a>
+                <a href="#" class="py-2 font-medium text-gray-600 hover:text-primary transition-colors">关于数据</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="container mx-auto px-4 pt-24 pb-16">
+        <!-- 英雄区域 -->
+        <section class="mb-20 animate-fade-in">
+            <div class="bg-gradient-primary rounded-2xl shadow-xl overflow-hidden">
+                <div class="md:flex items-center">
+                    <div class="p-8 md:p-12 md:w-1/2">
+                        <h2 class="text-[clamp(1.8rem,4vw,3rem)] font-bold text-white mb-6 text-shadow">
+                            美国电动汽车数据分析平台
+                        </h2>
+                        <p class="text-white/90 text-lg mb-8 max-w-lg">
+                            探索美国电动汽车市场趋势、品牌数据和区域分布，通过交互式工具和动态可视化洞察行业发展。
+                        </p>
+                        <div class="flex flex-wrap gap-4">
+                            <a href="#query-tools" class="bg-white text-primary font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 flex items-center">
+                                <i class="fa fa-search mr-2"></i> 开始查询
+                            </a>
+                            <a href="#visualizations" class="bg-transparent border-2 border-white text-white font-medium py-3 px-6 rounded-lg hover:bg-white/10 transition-all duration-300 flex items-center">
+                                <i class="fa fa-chart-line mr-2"></i> 查看可视化
+                            </a>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2 p-4 md:p-8">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 h-full">
+                            <canvas id="hero-chart" height="250"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 交互式查询工具 -->
+        <section id="query-tools" class="mb-20 animate-slide-up">
+            <div class="text-center mb-12">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-4">
+                    交互式查询工具
+                </h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    通过简单的查询，获取电动汽车的详细数据和分析结果，支持品牌车型查询和区域数据查询
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- 品牌-车型查询 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 card-hover">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fa fa-car text-xl text-primary"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-dark">品牌-车型查询</h3>
+                    </div>
+                    
+                    <form id="model-query-form" class="space-y-6">
+                        <div>
+                            <label for="brand" class="block text-sm font-medium text-gray-700 mb-1">品牌</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fa fa-building text-gray-400"></i>
+                                </div>
+                                <select id="brand" name="brand"
+                                    class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none appearance-none bg-white">
+                                    <option value="" disabled selected>选择品牌</option>
+                                    <option value="tesla">特斯拉</option>
+                                    <option value="ford">福特</option>
+                                    <option value="chevrolet">雪佛兰</option>
+                                    <option value="nissan">日产</option>
+                                    <option value="volkswagen">大众</option>
+                                    <option value="bmw">宝马</option>
+                                    <option value="audi">奥迪</option>
+                                    <option value="rivian">Rivian</option>
+                                    <option value="lucid">Lucid</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <i class="fa fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="model" class="block text-sm font-medium text-gray-700 mb-1">车型</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fa fa-car text-gray-400"></i>
+                                </div>
+                                <input type="text" id="model" name="model" 
+                                    class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                                    placeholder="输入车型（如：Model 3）">
+                            </div>
+                        </div>
+
+                        <div>
+                            <button type="submit" 
+                                class="w-full bg-primary text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center">
+                                <span>查询车型数据</span>
+                                <i class="fa fa-search ml-2"></i>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- 车型查询结果 -->
+                    <div id="model-result" class="mt-8 hidden">
+                        <div class="border-t pt-6">
+                            <h4 class="text-lg font-semibold mb-4 flex items-center">
+                                <i class="fa fa-bar-chart text-primary mr-2"></i> 查询结果
+                            </h4>
+                            <div class="grid grid-cols-2 gap-4 mb-6">
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-500">续航里程</p>
+                                    <p class="text-2xl font-bold text-dark" id="range-result">320 英里</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-500">参考价格</p>
+                                    <p class="text-2xl font-bold text-dark" id="price-result">$42,990</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-500">市场占比</p>
+                                    <p class="text-2xl font-bold text-dark" id="market-share-result">12.5%</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-500">热门区域</p>
+                                    <p class="text-2xl font-bold text-dark" id="popular-region-result">加利福尼亚州</p>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-500 mb-2">区域分布</p>
+                                <canvas id="region-distribution-chart" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 区域查询（美国：州、市、县三级） -->
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 card-hover">
+                    <div class="flex items-center mb-6">
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fa fa-map-marker text-xl text-secondary"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-dark">区域查询</h3>
+                    </div>
+                    
+                    <form id="region-query-form" class="space-y-6">
+                        <div>
+                            <label for="state" class="block text-sm font-medium text-gray-700 mb-1">州 (State)</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fa fa-map text-gray-400"></i>
+                                </div>
+                                <select id="state" name="state"
+                                    class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary transition-all outline-none appearance-none bg-white">
+                                    <option value="" disabled selected>选择州</option>
+                                    <option value="california">加利福尼亚州</option>
+                                    <option value="texas">得克萨斯州</option>
+                                    <option value="newyork">纽约州</option>
+                                    <option value="florida">佛罗里达州</option>
+                                    <option value="washington">华盛顿州</option>
+                                    <option value="illinois">伊利诺伊州</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <i class="fa fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="city" class="block text-sm font-medium text-gray-700 mb-1">市 (City)</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fa fa-map-pin text-gray-400"></i>
+                                </div>
+                                <select id="city" name="city" disabled
+                                    class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed focus:ring-2 focus:ring-secondary focus:border-secondary transition-all outline-none appearance-none">
+                                    <option value="" disabled selected>先选择州</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <i class="fa fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="county" class="block text-sm font-medium text-gray-700 mb-1">县 (County)</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fa fa-home text-gray-400"></i>
+                                </div>
+                                <select id="county" name="county" disabled
+                                    class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed focus:ring-2 focus:ring-secondary focus:border-secondary transition-all outline-none appearance-none">
+                                    <option value="" disabled selected>先选择市</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <i class="fa fa-chevron-down text-gray-400"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button type="submit" 
+                                class="w-full bg-secondary text-white font-medium py-3 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center">
+                                <span>查询区域数据</span>
+                                <i class="fa fa-search ml-2"></i>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- 区域查询结果 -->
+                    <div id="region-result" class="mt-8 hidden">
+                        <div class="border-t pt-6">
+                            <h4 class="text-lg font-semibold mb-4 flex items-center">
+                                <i class="fa fa-bar-chart text-secondary mr-2"></i> 查询结果
+                            </h4>
+                            <div class="grid grid-cols-2 gap-4 mb-6">
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-500">电动汽车总数</p>
+                                    <p class="text-2xl font-bold text-dark" id="ev-count-result">156,890</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <p class="text-sm text-gray-500">平均续航</p>
+                                    <p class="text-2xl font-bold text-dark" id="avg-range-result">285 英里</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg col-span-2">
+                                    <p class="text-sm text-gray-500 mb-2">热门品牌</p>
+                                    <canvas id="popular-brands-chart" height="180"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 动态可视化输出 -->
+        <section id="visualizations" class="mb-20 animate-slide-up">
+            <div class="text-center mb-12">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-4">
+                    动态可视化数据
+                </h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">
+                    通过动态图表直观了解电动汽车市场的发展趋势和地理分布变化
+                </p>
+            </div>
+
+            <!-- 年份趋势动图 -->
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-10 card-hover">
+                <div class="flex flex-wrap items-center justify-between mb-6">
+                    <div class="flex items-center mb-4 md:mb-0">
+                        <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fa fa-line-chart text-xl text-accent"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-dark">年份趋势：市场份额变化 (2000-2026)</h3>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4 w-full md:w-auto">
+                        <button id="play-trend" class="bg-accent text-white p-2 rounded-lg hover:bg-accent/90 transition-colors">
+                            <i class="fa fa-play"></i>
+                        </button>
+                        <button id="pause-trend" class="bg-gray-200 text-gray-700 p-2 rounded-lg hover:bg-gray-300 transition-colors hidden">
+                            <i class="fa fa-pause"></i>
+                        </button>
+                        <span id="trend-year" class="font-bold text-dark">2000</span>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <input type="range" id="year-slider" min="2000" max="2026" value="2000" class="timeline-slider w-full">
+                    <div class="flex justify-between text-sm text-gray-500 mt-1">
+                        <span>2000</span>
+                        <span>2013</span>
+                        <span>2026</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <canvas id="market-trend-chart" height="300"></canvas>
+                </div>
+            </div>
+
+            <!-- 地理分布动图 -->
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 card-hover">
+                <div class="flex flex-wrap items-center justify-between mb-6">
+                    <div class="flex items-center mb-4 md:mb-0">
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                            <i class="fa fa-map text-xl text-primary"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-dark">地理分布：电动汽车密度变化</h3>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4 w-full md:w-auto">
+                        <button id="play-map" class="bg-primary text-white p-2 rounded-lg hover:bg-primary/90 transition-colors">
+                            <i class="fa fa-play"></i>
+                        </button>
+                        <button id="pause-map" class="bg-gray-200 text-gray-700 p-2 rounded-lg hover:bg-gray-300 transition-colors hidden">
+                            <i class="fa fa-pause"></i>
+                        </button>
+                        <span id="map-year" class="font-bold text-dark">2010</span>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <input type="range" id="map-year-slider" min="2010" max="2026" value="2010" class="timeline-slider w-full">
+                    <div class="flex justify-between text-sm text-gray-500 mt-1">
+                        <span>2010</span>
+                        <span>2018</span>
+                        <span>2026</span>
+                    </div>
+                </div>
+                
+                <div class="grid md:grid-cols-4 gap-6">
+                    <div class="md:col-span-3">
+                        <div class="border rounded-lg overflow-hidden bg-gray-50 h-[400px] relative">
+                            <!-- 美国地图轮廓 -->
+                            <div id="usa-map" class="w-full h-full bg-[#f0f4f8] relative">
+                                <!-- 地图将通过JS动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-center">
+                        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                            <h4 class="font-medium mb-2">全美电动汽车总量</h4>
+                            <p class="text-3xl font-bold text-primary" id="national-total">2,540,890</p>
+                            <p class="text-sm text-green-600"><i class="fa fa-arrow-up"></i> 较上年增长 23.5%</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-medium mb-3">密度图例</h4>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 bg-blue-100 rounded-sm mr-2"></div>
+                                    <span class="text-sm">低 (0-1000辆)</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 bg-blue-300 rounded-sm mr-2"></div>
+                                    <span class="text-sm">中低 (1000-5000辆)</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 bg-blue-500 rounded-sm mr-2"></div>
+                                    <span class="text-sm">中 (5000-10000辆)</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 bg-blue-700 rounded-sm mr-2"></div>
+                                    <span class="text-sm">中高 (10000-50000辆)</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-6 h-6 bg-blue-900 rounded-sm mr-2"></div>
+                                    <span class="text-sm">高 (50000+辆)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 数据说明 -->
+        <section class="mb-16 animate-slide-up">
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <h3 class="text-xl font-bold text-dark mb-4">数据说明</h3>
+                <div class="grid md:grid-cols-2 gap-6 text-gray-600">
+                    <div>
+                        <p class="mb-3"><i class="fa fa-info-circle text-primary mr-2"></i> 本平台数据来源于美国能源部、各州机动车管理局及市场调研。</p>
+                        <p class="mb-3"><i class="fa fa-info-circle text-primary mr-2"></i> 2023-2026年数据为基于历史趋势的预测值。</p>
+                        <p><i class="fa fa-info-circle text-primary mr-2"></i> 地理分布数据按行政区域划分，展示的是相对密度。</p>
+                    </div>
+                    <div>
+                        <p class="mb-3"><i class="fa fa-refresh text-primary mr-2"></i> 数据每月更新一次，确保信息时效性。</p>
+                        <p class="mb-3"><i class="fa fa-filter text-primary mr-2"></i> 市场份额计算基于销量数据，包含主要品牌和车型。</p>
+                        <p><i class="fa fa-download text-primary mr-2"></i> 如需详细数据报告，可联系我们获取完整版本。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <i class="fa fa-bolt text-primary text-2xl"></i>
+                        <h2 class="text-xl font-bold">美国EV数据洞察</h2>
+                    </div>
+                    <p class="text-gray-400 mb-4">专业的美国电动汽车数据分析平台，提供全面的市场洞察和趋势分析。</p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fa fa-github text-xl"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fa fa-twitter text-xl"></i></a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors"><i class="fa fa-linkedin text-xl"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">功能</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#query-tools" class="text-gray-400 hover:text-white transition-colors">查询工具</a></li>
+                        <li><a href="#visualizations" class="text-gray-400 hover:text-white transition-colors">数据可视化</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">市场分析</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">趋势预测</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">资源</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">数据来源</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">使用教程</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">API文档</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition-colors">常见问题</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">联系我们</h3>
+                    <ul class="space-y-2">
+                        <li class="flex items-center"><i class="fa fa-envelope-o text-gray-400 mr-2"></i> <a href="mailto:contact@usevdata.com" class="text-gray-400 hover:text-white transition-colors">contact@usevdata.com</a></li>
+                        <li class="flex items-center"><i class="fa fa-phone text-gray-400 mr-2"></i> <span class="text-gray-400">+1 (555) 123-4567</span></li>
+                        <li class="flex items-center"><i class="fa fa-map-marker text-gray-400 mr-2"></i> <span class="text-gray-400">加利福尼亚州旧金山</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-10 pt-6 text-center text-gray-500">
+                <p>&copy; 2023 美国EV数据洞察. 保留所有权利。</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 加载动画 -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white p-6 rounded-lg shadow-2xl flex items-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mr-4"></div>
+            <span>正在加载数据...</span>
+        </div>
+    </div>
+
+    <script>
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 导航栏滚动效果
+            const navbar = document.getElementById('navbar');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 10) {
+                    navbar.classList.add('py-2', 'shadow-lg');
+                    navbar.classList.remove('py-3', 'shadow-md');
+                } else {
+                    navbar.classList.add('py-3', 'shadow-md');
+                    navbar.classList.remove('py-2', 'shadow-lg');
+                }
+            });
+
+            // 移动端菜单切换
+            const menuToggle = document.getElementById('menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+            menuToggle.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+
+            // 初始化所有图表和交互
+            initHeroChart();
+            initStateCityCountyData();
+            initModelQueryForm();
+            initRegionQueryForm();
+            initMarketTrendChart();
+            initUSAMap();
+        });
+
+        // 英雄区域图表
+        function initHeroChart() {
+            const ctx = document.getElementById('hero-chart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['2018', '2019', '2020', '2021', '2022', '2023'],
+                    datasets: [{
+                        label: '电动汽车销量(万辆)',
+                        data: [36, 43, 49, 65, 83, 112],
+                        borderColor: 'rgba(255, 255, 255, 0.8)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(255, 255, 255, 0.8)'
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 0.7)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 州、市、县数据初始化（美国）
+        function initStateCityCountyData() {
+            const stateSelect = document.getElementById('state');
+            const citySelect = document.getElementById('city');
+            const countySelect = document.getElementById('county');
+            
+            // 美国州、市、县数据
+            const locationData = {
+                california: {
+                    cities: {
+                        losangeles: {
+                            name: "洛杉矶",
+                            counties: ["洛杉矶县", "橙县", "河滨县"]
+                        },
+                        sanfrancisco: {
+                            name: "旧金山",
+                            counties: ["旧金山县", "圣马特奥县", "阿拉米达县"]
+                        },
+                        sanjose: {
+                            name: "圣何塞",
+                            counties: ["圣克拉拉县", "圣贝尼托县"]
+                        }
+                    }
+                },
+                texas: {
+                    cities: {
+                        houston: {
+                            name: "休斯顿",
+                            counties: ["哈里斯县", "福特本德县", "蒙哥马利县"]
+                        },
+                        dallas: {
+                            name: "达拉斯",
+                            counties: ["达拉斯县", "塔兰特县", "科林县"]
+                        },
+                        austin: {
+                            name: "奥斯汀",
+                            counties: ["特拉维斯县", "威廉姆森县"]
+                        }
+                    }
+                },
+                newyork: {
+                    cities: {
+                        newyorkcity: {
+                            name: "纽约市",
+                            counties: ["曼哈顿", "布鲁克林", "皇后区", "布朗克斯", "史泰登岛"]
+                        },
+                        buffalo: {
+                            name: "布法罗",
+                            counties: ["伊利县", "尼亚加拉县"]
+                        }
+                    }
+                },
+                florida: {
+                    cities: {
+                        miami: {
+                            name: "迈阿密",
+                            counties: ["迈阿密-戴德县", "布劳沃德县", "棕榈滩县"]
+                        },
+                        orlando: {
+                            name: "奥兰多",
+                            counties: ["奥兰治县", "塞米诺尔县", "奥西奥拉县"]
+                        }
+                    }
+                },
+                washington: {
+                    cities: {
+                        seattle: {
+                            name: "西雅图",
+                            counties: ["金县", "斯诺霍米什县", "皮尔斯县"]
+                        },
+                        spokane: {
+                            name: "斯波坎",
+                            counties: ["斯波坎县", "斯泰普尔斯县"]
+                        }
+                    }
+                },
+                illinois: {
+                    cities: {
+                        chicago: {
+                            name: "芝加哥",
+                            counties: ["库克县", "杜佩奇县", "莱克县"]
+                        },
+                        springfield: {
+                            name: "斯普林菲尔德",
+                            counties: ["桑加蒙县", "摩根县"]
+                        }
+                    }
+                }
+            };
+            
+            // 监听州变化，更新城市列表
+            stateSelect.addEventListener('change', function() {
+                const selectedState = this.value;
+                citySelect.innerHTML = '';
+                countySelect.innerHTML = '';
+                
+                // 禁用/启用城市选择
+                if (selectedState && locationData[selectedState]) {
+                    citySelect.disabled = false;
+                    citySelect.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                    
+                    // 添加默认选项
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.disabled = true;
+                    defaultOption.selected = true;
+                    defaultOption.textContent = '选择市';
+                    citySelect.appendChild(defaultOption);
+                    
+                    // 添加城市选项
+                    Object.entries(locationData[selectedState].cities).forEach(([value, cityInfo]) => {
+                        const option = document.createElement('option');
+                        option.value = value;
+                        option.textContent = cityInfo.name;
+                        citySelect.appendChild(option);
+                    });
+                } else {
+                    citySelect.disabled = true;
+                    citySelect.classList.add('bg-gray-100', 'cursor-not-allowed');
+                    
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.disabled = true;
+                    option.selected = true;
+                    option.textContent = '先选择州';
+                    citySelect.appendChild(option);
+                    
+                    // 重置县选择
+                    countySelect.disabled = true;
+                    countySelect.classList.add('bg-gray-100', 'cursor-not-allowed');
+                    const countyOption = document.createElement('option');
+                    countyOption.value = '';
+                    countyOption.disabled = true;
+                    countyOption.selected = true;
+                    countyOption.textContent = '先选择市';
+                    countySelect.appendChild(countyOption);
+                }
+            });
+            
+            // 监听城市变化，更新县列表
+            citySelect.addEventListener('change', function() {
+                const selectedState = stateSelect.value;
+                const selectedCity = this.value;
+                countySelect.innerHTML = '';
+                
+                // 禁用/启用县选择
+                if (selectedState && selectedCity && locationData[selectedState] && locationData[selectedState].cities[selectedCity]) {
+                    countySelect.disabled = false;
+                    countySelect.classList.remove('bg-gray-100', 'cursor-not-allowed');
+                    
+                    // 添加默认选项
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.disabled = true;
+                    defaultOption.selected = true;
+                    defaultOption.textContent = '选择县';
+                    countySelect.appendChild(defaultOption);
+                    
+                    // 添加县选项
+                    locationData[selectedState].cities[selectedCity].counties.forEach(county => {
+                        const option = document.createElement('option');
+                        option.value = county.toLowerCase().replace(/县/g, '');
+                        option.textContent = county;
+                        countySelect.appendChild(option);
+                    });
+                } else {
+                    countySelect.disabled = true;
+                    countySelect.classList.add('bg-gray-100', 'cursor-not-allowed');
+                    
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.disabled = true;
+                    option.selected = true;
+                    option.textContent = '先选择市';
+                    countySelect.appendChild(option);
+                }
+            });
+        }
+
+        // 车型查询表单处理
+        function initModelQueryForm() {
+            const form = document.getElementById('model-query-form');
+            const resultContainer = document.getElementById('model-result');
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // 显示加载状态
+                document.getElementById('loading-overlay').classList.remove('hidden');
+                
+                // 模拟API请求延迟
+                setTimeout(() => {
+                    // 隐藏加载状态
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                    
+                    // 显示结果
+                    resultContainer.classList.remove('hidden');
+                    
+                    // 更新结果数据（实际应用中应从API获取）
+                    const brand = document.getElementById('brand').value;
+                    const model = document.getElementById('model').value || '未知车型';
+                    
+                    // 根据品牌生成不同的模拟数据
+                    let range, price, marketShare, popularRegion;
+                    
+                    switch(brand) {
+                        case 'tesla':
+                            range = '320 英里';
+                            price = '$42,990';
+                            marketShare = '22.5%';
+                            popularRegion = '加利福尼亚州';
+                            break;
+                        case 'ford':
+                            range = '300 英里';
+                            price = '$45,995';
+                            marketShare = '8.7%';
+                            popularRegion = '密歇根州';
+                            break;
+                        case 'chevrolet':
+                            range = '259 英里';
+                            price = '$31,500';
+                            marketShare = '7.3%';
+                            popularRegion = '得克萨斯州';
+                            break;
+                        case 'nissan':
+                            range = '215 英里';
+                            price = '$33,340';
+                            marketShare = '4.2%';
+                            popularRegion = '加利福尼亚州';
+                            break;
+                        case 'rivian':
+                            range = '314 英里';
+                            price = '$73,000';
+                            marketShare = '1.8%';
+                            popularRegion = '华盛顿州';
+                            break;
+                        default:
+                            range = '280 英里';
+                            price = '$48,500';
+                            marketShare = '5.1%';
+                            popularRegion = '全国';
+                    }
+                    
+                    document.getElementById('range-result').textContent = range;
+                    document.getElementById('price-result').textContent = price;
+                    document.getElementById('market-share-result').textContent = marketShare;
+                    document.getElementById('popular-region-result').textContent = popularRegion;
+                    
+                    // 初始化区域分布图表
+                    initRegionDistributionChart();
+                    
+                    // 滚动到结果区域
+                    resultContainer.scrollIntoView({ behavior: 'smooth' });
+                }, 800);
+            });
+        }
+
+        // 区域分布图表
+        function initRegionDistributionChart() {
+            const ctx = document.getElementById('region-distribution-chart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['西海岸', '东北部', '南部', '中西部'],
+                    datasets: [{
+                        data: [40, 25, 20, 15],
+                        backgroundColor: [
+                            '#165DFF',
+                            '#36D399',
+                            '#7C3AED',
+                            '#F59E0B'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 15
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        // 区域查询表单处理
+        function initRegionQueryForm() {
+            const form = document.getElementById('region-query-form');
+            const resultContainer = document.getElementById('region-result');
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // 验证是否选择了县
+                const county = document.getElementById('county').value;
+                if (!county) {
+                    alert('请选择县');
+                    return;
+                }
+                
+                // 显示加载状态
+                document.getElementById('loading-overlay').classList.remove('hidden');
+                
+                // 模拟API请求延迟
+                setTimeout(() => {
+                    // 隐藏加载状态
+                    document.getElementById('loading-overlay').classList.add('hidden');
+                    
+                    // 显示结果
+                    resultContainer.classList.remove('hidden');
+                    
+                    // 更新结果数据（实际应用中应从API获取）
+                    const state = document.getElementById('state').options[document.getElementById('state').selectedIndex].text;
+                    const city = document.getElementById('city').options[document.getElementById('city').selectedIndex].text;
+                    const countyName = document.getElementById('county').options[document.getElementById('county').selectedIndex].text;
+                    
+                    // 根据地区生成不同的模拟数据
+                    let evCount, avgRange, brandsData;
+                    
+                    if (state.includes('加利福尼亚') && (city.includes('旧金山') || city.includes('洛杉矶'))) {
+                        evCount = Math.floor(Math.random() * 80000) + 220000;
+                        avgRange = Math.floor(Math.random() * 40) + 300;
+                        brandsData = [45, 15, 10, 8, 7, 15]; // 特斯拉占比较高
+                    } else if (state.includes('得克萨斯') || state.includes('纽约') || state.includes('佛罗里达')) {
+                        evCount = Math.floor(Math.random() * 60000) + 150000;
+                        avgRange = Math.floor(Math.random() * 40) + 280;
+                        brandsData = [30, 20, 15, 10, 10, 15];
+                    } else {
+                        evCount = Math.floor(Math.random() * 50000) + 80000;
+                        avgRange = Math.floor(Math.random() * 40) + 260;
+                        brandsData = [25, 22, 18, 12, 8, 15];
+                    }
+                    
+                    // 格式化数字为带逗号的形式
+                    document.getElementById('ev-count-result').textContent = evCount.toLocaleString();
+                    document.getElementById('avg-range-result').textContent = avgRange + ' 英里';
+                    
+                    // 初始化热门品牌图表
+                    initPopularBrandsChart(brandsData);
+                    
+                    // 滚动到结果区域
+                    resultContainer.scrollIntoView({ behavior: 'smooth' });
+                }, 800);
+            });
+        }
+
+        // 热门品牌图表
+        function initPopularBrandsChart(data) {
+            const ctx = document.getElementById('popular-brands-chart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['特斯拉', '福特', '雪佛兰', '日产', 'Rivian', '其他'],
+                    datasets: [{
+                        label: '市场占比 (%)',
+                        data: data,
+                        backgroundColor: '#36D399',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 50,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 市场趋势图表
+        function initMarketTrendChart() {
+            const ctx = document.getElementById('market-trend-chart').getContext('2d');
+            const yearSlider = document.getElementById('year-slider');
+            const trendYearDisplay = document.getElementById('trend-year');
+            const playButton = document.getElementById('play-trend');
+            const pauseButton = document.getElementById('pause-trend');
+            
+            // 生成2000-2026年的品牌市场份额数据
+            const years = Array.from({length: 27}, (_, i) => 2000 + i);
+            
+            // 美国市场品牌数据
+            const brands = {
+                特斯拉: generateTrendData(0, 40, 27, 10),
+                福特: generateTrendData(1, 15, 27),
+                雪佛兰: generateTrendData(1, 12, 27),
+                日产: generateTrendData(0.5, 8, 27, 5),
+                Rivian: generateTrendData(0, 5, 27, 15),
+                其他: generateTrendData(97.5, 20, 27)
+            };
+            
+            // 生成趋势数据的函数
+            function generateTrendData(start, end, length, delay = 0) {
+                return Array.from({length}, (_, i) => {
+                    if (i < delay) {
+                        return start;
+                    }
+                    const progress = (i - delay) / (length - delay - 1);
+                    return start + (end - start) * progress + (Math.random() * 2 - 1);
+                });
+            }
+            
+            // 初始化图表
+            const trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years.map(String),
+                    datasets: Object.entries(brands).map(([name, data], index) => {
+                        const colors = [
+                            '#165DFF', '#36D399', '#7C3AED', '#F59E0B', '#EF4444', '#64748B'
+                        ];
+                        
+                        return {
+                            label: name,
+                            data: data,
+                            borderColor: colors[index],
+                            backgroundColor: `${colors[index]}20`,
+                            tension: 0.4,
+                            fill: false,
+                            borderWidth: 2,
+                            pointRadius: 0
+                        };
+                    })
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.raw.toFixed(1)}%`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: '市场份额 (%)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            },
+                            min: 0,
+                            max: 100
+                        },
+                        x: {
+                            stacked: true,
+                        }
+                    },
+                    animation: {
+                        duration: 500
+                    }
+                }
+            });
+            
+            // 更新图表显示到指定年份
+            function updateChartToYear(year) {
+                trendYearDisplay.textContent = year;
+                yearSlider.value = year;
+                
+                // 更新每个数据集的可见范围
+                trendChart.data.datasets.forEach((dataset, i) => {
+                    const brandData = Object.values(brands)[i];
+                    const yearIndex = year - 2000;
+                    
+                    // 创建一个新数组，只显示到指定年份的数据点
+                    dataset.data = brandData.map((value, index) => {
+                        return index <= yearIndex ? value : null;
+                    });
+                });
+                
+                trendChart.update();
+            }
+            
+            // 滑块事件
+            yearSlider.addEventListener('input', function() {
+                updateChartToYear(parseInt(this.value));
+            });
+            
+            // 播放/暂停动画
+            let animationInterval;
+            let isPlaying = false;
+            
+            playButton.addEventListener('click', function() {
+                if (isPlaying) return;
+                
+                isPlaying = true;
+                playButton.classList.add('hidden');
+                pauseButton.classList.remove('hidden');
+                
+                let currentYear = parseInt(yearSlider.value);
+                
+                animationInterval = setInterval(() => {
+                    currentYear++;
+                    if (currentYear > 2026) {
+                        currentYear = 2000;
+                    }
+                    updateChartToYear(currentYear);
+                }, 500);
+            });
+            
+            pauseButton.addEventListener('click', function() {
+                isPlaying = false;
+                clearInterval(animationInterval);
+                pauseButton.classList.add('hidden');
+                playButton.classList.remove('hidden');
+            });
+            
+            // 初始显示2000年数据
+            updateChartToYear(2000);
+        }
+
+        // 美国地图可视化
+        function initUSAMap() {
+            const mapContainer = document.getElementById('usa-map');
+            const mapYearSlider = document.getElementById('map-year-slider');
+            const mapYearDisplay = document.getElementById('map-year');
+            const playMapButton = document.getElementById('play-map');
+            const pauseMapButton = document.getElementById('pause-map');
+            const nationalTotalDisplay = document.getElementById('national-total');
+            
+            // 美国主要城市坐标（简化版）
+            const cities = [
+                { name: '纽约', x: 70, y: 30 },
+                { name: '洛杉矶', x: 20, y: 45 },
+                { name: '芝加哥', x: 50, y: 40 },
+                { name: '休斯顿', x: 40, y: 60 },
+                { name: '费城', x: 68, y: 35 },
+                { name: '菲尼克斯', x: 30, y: 55 },
+                { name: '圣安东尼奥', x: 35, y: 58 },
+                { name: '圣地亚哥', x: 20, y: 50 },
+                { name: '达拉斯', x: 38, y: 55 },
+                { name: '圣何塞', x: 22, y: 40 },
+                { name: '旧金山', x: 20, y: 38 },
+                { name: '迈阿密', x: 65, y: 70 },
+                { name: '西雅图', x: 15, y: 25 },
+                { name: '波士顿', x: 72, y: 25 },
+                { name: '亚特兰大', x: 58, y: 55 },
+                { name: '华盛顿', x: 67, y: 38 },
+                { name: '丹佛', x: 35, y: 40 },
+                { name: '拉斯维加斯', x: 25, y: 50 },
+                { name: '明尼阿波利斯', x: 55, y: 25 },
+                { name: '底特律', x: 60, y: 35 }
+            ];
+            
+            // 生成各年份的城市电动汽车数量数据
+            function generateCityData(year) {
+                const baseYear = 2010;
+                const progress = (year - baseYear) / (2026 - baseYear);
+                
+                return cities.map(city => {
+                    // 基础数量，西海岸城市更高
+                    const baseCount = ['洛杉矶', '旧金山', '圣何塞', '西雅图'].includes(city.name) ? 8000 : 3000;
+                    
+                    // 增长因子，不同区域增长速度不同
+                    let growthFactor = 15;
+                    if (['洛杉矶', '旧金山', '圣何塞', '纽约', '西雅图'].includes(city.name)) {
+                        growthFactor = 25;
+                    } else if (['芝加哥', '华盛顿', '波士顿', '迈阿密'].includes(city.name)) {
+                        growthFactor = 20;
+                    }
+                    
+                    // 计算数量
+                    let count = Math.floor(baseCount + (baseCount * growthFactor * progress) * (0.8 + Math.random() * 0.4));
+                    
+                    // 添加一些随机波动
+                    count = Math.floor(count * (0.9 + Math.random() * 0.2));
+                    
+                    return {
+                        ...city,
+                        count: count
+                    };
+                });
+            }
+            
+            // 创建城市圆点元素
+            function createCityElements(cityData) {
+                // 清空现有元素
+                mapContainer.innerHTML = '';
+                
+                // 添加美国地图轮廓（简化版）
+                const mapOutline = document.createElement('div');
+                mapOutline.className = 'absolute inset-0 bg-[#f0f4f8] bg-opacity-50';
+                mapOutline.style.backgroundImage = "url('data:image/svg+xml,%3Csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"100%25\" height=\"100%25\"%3E%3Cpath d=\"M10,30 L30,10 L70,10 L90,30 L80,60 L90,80 L70,90 L30,90 L10,70 L20,40 Z\" fill=\"none\" stroke=\"%23cbd5e1\" stroke-width=\"2\"/%3E%3C/svg%3E')";
+                mapContainer.appendChild(mapOutline);
+                
+                // 计算全国总数
+                const nationalTotal = cityData.reduce((sum, city) => sum + city.count, 0);
+                nationalTotalDisplay.textContent = nationalTotal.toLocaleString();
+                
+                // 创建每个城市的圆点
+                cityData.forEach(city => {
+                    const cityElement = document.createElement('div');
+                    
+                    // 根据数量确定大小和颜色
+                    let size, colorClass;
+                    
+                    if (city.count < 1000) {
+                        size = 'w-3 h-3';
+                        colorClass = 'bg-blue-100';
+                    } else if (city.count < 5000) {
+                        size = 'w-4 h-4';
+                        colorClass = 'bg-blue-300';
+                    } else if (city.count < 10000) {
+                        size = 'w-5 h-5';
+                        colorClass = 'bg-blue-500';
+                    } else if (city.count < 50000) {
+                        size = 'w-6 h-6';
+                        colorClass = 'bg-blue-700';
+                    } else {
+                        size = 'w-8 h-8';
+                        colorClass = 'bg-blue-900';
+                    }
+                    
+                    // 设置样式
+                    cityElement.className = `absolute rounded-full ${size} ${colorClass} transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-500 hover:z-10 hover:ring-2 hover:ring-white`;
+                    cityElement.style.left = `${city.x}%`;
+                    cityElement.style.top = `${city.y}%`;
+                    cityElement.title = `${city.name}: ${city.count.toLocaleString()}辆`;
+                    
+                    // 添加脉冲效果
+                    const pulseElement = document.createElement('div');
+                    pulseElement.className = `absolute rounded-full ${size} ${colorClass} animate-ping opacity-75`;
+                    cityElement.appendChild(pulseElement);
+                    
+                    mapContainer.appendChild(cityElement);
+                });
+            }
+            
+            // 更新地图到指定年份
+            function updateMapToYear(year) {
+                mapYearDisplay.textContent = year;
+                mapYearSlider.value = year;
+                
+                const cityData = generateCityData(year);
+                createCityElements(cityData);
+            }
+            
+            // 滑块事件
+            mapYearSlider.addEventListener('input', function() {
+                updateMapToYear(parseInt(this.value));
+            });
+            
+            // 播放/暂停动画
+            let mapAnimationInterval;
+            let isMapPlaying = false;
+            
+            playMapButton.addEventListener('click', function() {
+                if (isMapPlaying) return;
+                
+                isMapPlaying = true;
+                playMapButton.classList.add('hidden');
+                pauseMapButton.classList.remove('hidden');
+                
+                let currentYear = parseInt(mapYearSlider.value);
+                
+                mapAnimationInterval = setInterval(() => {
+                    currentYear++;
+                    if (currentYear > 2026) {
+                        currentYear = 2010;
+                    }
+                    updateMapToYear(currentYear);
+                }, 800);
+            });
+            
+            pauseMapButton.addEventListener('click', function() {
+                isMapPlaying = false;
+                clearInterval(mapAnimationInterval);
+                pauseMapButton.classList.add('hidden');
+                playMapButton.classList.remove('hidden');
+            });
+            
+            // 初始显示2010年数据
+            updateMapToYear(2010);
+        }
+    </script>
+</body>
+</html>
+<script src="js/api.js"></script>
+<script src="js/charts.js"></script>
